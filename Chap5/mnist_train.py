@@ -7,10 +7,10 @@ from tensorflow.examples.tutorials.mnist import input_data
 import mnist_inference
 
 BATCH_SIZE = 100
-LEARNING_RATE_BASE = 0.8    #把这个改成0.1就没事了艹，这个太迷了，现在0.8的话会造成loss一直上升
+LEARNING_RATE_BASE = 0.1    #把这个改成0.1就没事了艹，这个太迷了，现在0.8的话会造成loss一直上升
 LEARNING_RATE_DECAY = 0.99
 REGULARAZTION_RATE = 0.0001
-TRAINING_STEPS = 30000
+TRAINING_STEPS = 10000
 MOVING_AVERAGE_DECAY = 0.99
 MODEL_SAVE_PATH = "./MODEL"
 MODEL_NAME="model.ckpt"
@@ -50,3 +50,6 @@ def train(mnist):
 
 mnist = input_data.read_data_sets("./database/MNIST/", one_hot=True)
 train(mnist)
+
+writer = tf.summary.FileWriter(logdir=".\log", graph=tf.get_default_graph())
+writer.close()

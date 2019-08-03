@@ -26,6 +26,7 @@ displayDataGenerator = FromFileGenerator(r'.\RealDoing\disp_ph.txt', r'.\RealDoi
 train_dataset = tf.data.Dataset.from_generator(generator=trainDataGenerator.GetNext, output_types=(tf.float32, tf.int32), output_shapes=(tf.TensorShape(None), tf.TensorShape(None)))
 test_dataset = tf.data.Dataset.from_generator(generator=testDataGenerator.GetNext, output_types=(tf.float32, tf.int32), output_shapes=(tf.TensorShape(None), tf.TensorShape(None)))
 display_dataset = tf.data.Dataset.from_generator(generator=displayDataGenerator.GetNext, output_types=(tf.float32, tf.int32), output_shapes=(tf.TensorShape(None), tf.TensorShape(None)))
+out_sequence_length = 120
 with tf.variable_scope('TrainingData'):
     trainBatchSize = 100
     trainDataSet = train_dataset.repeat().batch(trainBatchSize)
@@ -74,6 +75,7 @@ with tf.variable_scope('Model'):
         #loss = tf.losses.softmax_cross_entropy(onehot_labels=tf.reshape(tensor=y_, shape=[-1,2]), logits=tf.reshape(tensor=modelOut, shape=[-1,2]), scope='loss')
         loss = tf.losses.softmax_cross_entropy(onehot_labels=y_, logits=modelOut, scope='loss')
     with tf.variable_scope('output'):
+        softmaxOut = tf.nn.softmax(modelOut, axis=-1)
         predictions = tf.argmax(modelOut, axis=-1)
     with tf.variable_scope('evaluate'):
         modelOutPredict = tf.argmax(modelOut, axis=-1)
@@ -85,12 +87,20 @@ with tf.variable_scope('Model'):
             precision_test = tf.reduce_sum(tf.cast(eval_temp, tf.float32)) / tf.reduce_sum(tf.cast(tf.ones_like(eval_temp), tf.float32))
         with tf.variable_scope('Precision_NoRecord'):
             precision_norecord = tf.reduce_sum(tf.cast(eval_temp, tf.float32)) / tf.reduce_sum(tf.cast(tf.ones_like(eval_temp), tf.float32))
+
+    with tf.variable_scope('PositionError'):
+        pe_tk = tf.unstack(softmaxOut, axis=-1)
+        pe_tk = tf.stack([pe_tk[1], pe_tk[0]], axis=-1)
+        pe_tk = tf.reduce_sum(pe_tk * y_, axis=-1)
+        positionError = tf.reduce_sum(pe_tk, axis=0)
+        positionError = positionError / tf.reduce_sum(positionError)
         
     with tf.variable_scope('summary'):
         tf.summary.scalar(name='loss', tensor=loss)
         tf.summary.scalar(name='TrainSetPrecision', tensor=precision_train)
         tf.summary.scalar(name='TestSetPrecision', tensor=precision_test)
-        
+    
+    
     train_op = tf.contrib.layers.optimize_loss(loss=loss, global_step=global_step, optimizer="Adagrad", learning_rate=0.1)
     #train_op2 = tf.contrib.layers.optimize_loss(loss=loss2, global_step=global_step, optimizer="Adagrad", learning_rate=0.1)
     

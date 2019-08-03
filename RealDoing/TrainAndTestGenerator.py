@@ -15,7 +15,7 @@ while True:
     binLine = allBinFile.readline()
     if not(phLine and binLine):
         break
-    toTrainFile = bool(np.random.binomial(1, 0.8, 1)[0])
+    toTrainFile = bool(np.random.binomial(1, 0.6, 1)[0])
     if toTrainFile:
         trainPhFile.writelines(phLine)
         trainBinFile.writelines(binLine)

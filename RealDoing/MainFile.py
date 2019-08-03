@@ -93,7 +93,6 @@ with tf.variable_scope('Model'):
         pe_tk = tf.stack([pe_tk[1], pe_tk[0]], axis=-1)
         pe_tk = tf.reduce_sum(pe_tk * y_, axis=-1)
         positionError = tf.reduce_sum(pe_tk, axis=0)
-        positionError = positionError / tf.reduce_sum(positionError)
         
     with tf.variable_scope('summary'):
         tf.summary.scalar(name='loss', tensor=loss)
@@ -110,6 +109,7 @@ train_writer = tf.summary.FileWriter(logdir=".\log", graph=tf.get_default_graph(
 saver = tf.train.Saver()
 stopTrain = False
 display = False
+displayPositionError = False
 printInfoInterval = 1000
 with tf.Session() as sess:
     print("Session Started")
@@ -130,7 +130,14 @@ with tf.Session() as sess:
             test_feed = {x:xTestFeed, y_:yTestFeed}
             testPrecision = sess.run(precision_test, feed_dict=test_feed)
             print("GlobalStep:"+str(gs), "loss:"+str(l), "Prec:"+str(p), "TestPrec:"+str(testPrecision))
-
+        if displayPositionError:
+            displayPositionError = False
+            xTestFeed, yTestFeed = sess.run([xInputTestBatch, yInputTestBatch])
+            test_feed = {x:xTestFeed, y_:yTestFeed}
+            posErr = sess.run(positionError, feed_dict=test_feed)
+            figure = plt.figure("PositionErrorInTestBatch")
+            plt.bar(range(len(posErr)), posErr)
+            plt.show()
         while display:
             dispX, dispY = sess.run([xInputDisplayBatch, yInputDisplayBatch])
             disp_feed = {x:dispX, y_:dispY}
@@ -148,6 +155,7 @@ with tf.Session() as sess:
                 plt.plot(t, pltRange/2*np.repeat(bins[i], 12)+pltBase)
                 plt.plot(t, pltRange/2*np.repeat(inferBins[i], 12)+pltBase+pltRange/2)
             plt.show()
+            
     save_path = saver.save(sess, ".\\RealDoing\\saved\\HalfWayModel.ckpt")
     print("Model saved in path: %s" % save_path)
 train_writer.close()

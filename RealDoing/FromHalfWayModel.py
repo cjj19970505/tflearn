@@ -3,6 +3,7 @@ import numpy as np
 from numpy import float32
 import tensorflow as tf
 import matplotlib.pyplot as plt
+initFromFile = False
 def train_data_iter():
     xfr = io.open(r'.\RealDoing\train_ph.txt', encoding='utf8')
     yfr = io.open(r'.\RealDoing\train_bin.txt', encoding='utf8')
@@ -79,10 +80,13 @@ with tf.variable_scope('Model'):
         lstm_fw_cell_layer2 = tf.contrib.rnn.BasicLSTMCell(lstm_cell_num, forget_bias=1.0)
         lstm_bw_cell_layer2 = tf.contrib.rnn.BasicLSTMCell(lstm_cell_num, forget_bias=1.0)
         rnnout_layer2,_,_ = tf.nn.static_bidirectional_rnn(lstm_fw_cell_layer2, lstm_bw_cell_layer2, rnnout_layer1, dtype=tf.float32, scope='rnn_layer2')
-        rnnout = tf.stack(rnnout_layer1, 1)
+        rnnout = tf.stack(rnnout_layer2, 1)
         modelOut = tf.contrib.layers.fully_connected(inputs=rnnout, num_outputs=2, activation_fn=None, scope='LogitsOut')
     with tf.variable_scope('train'):
-        global_step = tf.get_variable(name='GlobalStep', shape=tf.TensorShape([]), dtype=tf.int32, initializer=tf.zeros_initializer, trainable=False)
+        if initFromFile:
+            global_step = tf.get_variable(name='GlobalStep', shape=tf.TensorShape([]), dtype=tf.int32, trainable=False)
+        else:
+            global_step = tf.get_variable(name='GlobalStep', shape=tf.TensorShape([]), dtype=tf.int32, initializer=tf.zeros_initializer, trainable=False)
         y_ = tf.placeholder(dtype=tf.float32, shape=[None, None, 2], name='TrainInputY')
         #loss = tf.losses.softmax_cross_entropy(onehot_labels=tf.reshape(tensor=y_, shape=[-1,2]), logits=tf.reshape(tensor=modelOut, shape=[-1,2]), scope='loss')
         loss = tf.losses.softmax_cross_entropy(onehot_labels=y_, logits=modelOut, scope='loss')
@@ -115,8 +119,13 @@ stopTrain = False
 display = False
 printInfoInterval = 1000
 with tf.Session() as sess:
-    sess.run(tf.global_variables_initializer())
+    print("Session Started")
+    if initFromFile:
+        saver.restore(sess, ".\\RealDoing\\saved\\HalfWayModel.ckpt")
+    else:
+        sess.run(tf.global_variables_initializer())
     #sess.run(xTrainIterator.get_next())
+    print("Variables Inited")
     while not stopTrain:
         xInput, yInput = sess.run([xInputTrainBatch, yInputTrainBatch])
         train_feed = {x:xInput, y_:yInput}
